@@ -28,12 +28,28 @@ The script will create a zip application named after the specified python file, 
 
 So the above command will produce a binary file named **myscript**
 
+## From Windows
+
 If you invoked `make-zipapp`  from a posix-compliant system, the resulting zip application is made executable, and can be called by its path, e.g.
 
 `./myscript`
 
-I've accomplished the same from a Windows machine using [cmder](http://cmder.net/), which includes **git-bash**.
+I've accomplished the same from a Windows machine using [cmder](http://cmder.net/), which includes **git-bash** but one caveat:
 
-You can also call the zipapp via the `python` executable, as with:
+I had to nest the **lib** folder in the directory I was to include, e.g.  
+
+```
+|_ myscript.py
+|_includes
+	|_lib
+|_conf
+|_config.ini
+```
+
+```
+make-zipapp -f myscript.py -d includes conf config.ini
+```
+
+You can also call the zipapp via the `python` executable if all else fails, as with:
 
 `python ./myscript`
