@@ -11,6 +11,10 @@ import shutil
 import sys
 import zipfile
 
+if sys.version_info[0] == 2:
+    print('Not supported on Python 2.x')
+    sys.exit(1)
+
 # Private variables
 __author__ = 'etejeda@seic.com'
 __version__ = '18.07.1332'
