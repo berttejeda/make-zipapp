@@ -16,8 +16,8 @@ if sys.version_info[0] == 2:
     sys.exit(1)
 
 # Private variables
-__author__ = 'etejeda@seic.com'
-__version__ = '18.07.1332'
+__author__ = 'etejeda@tecknicos.com'
+__version__ = '1.0.0'
 
 # Globals
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,11 +39,14 @@ def make_executable(path):
     mode |= (mode & 0o444) >> 2    # copy R bits to X
     os.chmod(path, mode)
 
-def make_zip(zipapp_file, dependencies):
+def make_zip(zipapp_file, dependencies, folder_exclusions=[], file_exclusions=[]):
     """
     Creates a zip-application of itself
     Result is a single executable file
     """
+    # Exclusions
+    folder_exclusion_list = folder_exclusions
+    file_exclusion_list = file_exclusions
     working_directory = os.getcwd()
     zipapp_name = os.path.basename(zipapp_file).split(".")[0]
     zip_main_file_name = '__main__.py'
@@ -67,18 +70,32 @@ def make_zip(zipapp_file, dependencies):
         if os.path.isfile(dependency_obj):
             zipf.write(dependency_obj)
         elif os.path.isdir(dependency_obj):
-            for folder,subfolder,file in os.walk(os.path.join(working_directory, dependency_obj)):
+            source_dir = os.path.join(working_directory, dependency_obj)
+            for folder,subfolder,file in os.walk(source_dir,topdown=True):
+                path_element=os.path.relpath(folder,source_dir)
+                nextiter=False
+                if any([path_element.endswith(X) for X in folder_exclusion_list]):
+                    print('Exluding folder %s' % path_element)
+                    nextiter=True
+                if any([path_element.endswith(x) for x in file_exclusion_list]):
+                    print('Exluding file %s' % path_element)
+                    nextiter=True
+                if nextiter==True:
+                    continue                                       
                 zip_arcname_mod_len = len(dependency_obj) + 1
+                # print(subfolder+file)
                 for each in subfolder+file:
                     source = os.path.join(folder,each)
                     # Remove the absolute path to compose arcname
                     # Also handles the remaining leading path separator with lstrip
                     arcname = source[len(working_directory) + zip_arcname_mod_len:].lstrip(os.sep)
-                    # Write the file under a different name in the archive
-                    #
-                    # TODO Employ an exclusion list
-                    #
-                    zipf.write(source, arcname=arcname)
+                    exclude_folder = os.path.isdir(source) and any([source.endswith(X) for X in folder_exclusion_list])
+                    exclude_file = os.path.isfile(source) and any([source.endswith(x) for x in file_exclusion_list])
+                    if exclude_folder or exclude_file:
+                        print('Exluding %s' % source)
+                    else:
+                        # Write the file under a different name in the archive
+                        zipf.write(source, arcname=arcname)
         else:
             print("Couldn't determine whether %s is a file or directory. Skipping")
             continue
@@ -116,7 +133,7 @@ def main(args, loglevel):
     logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=loglevel)
     logging.debug("You specified the following file: {f}".format(f=args.file))
     print('Making a zipapp using {f}'.format(f=args.file))
-    make_zip(args.file, args.dependencies)
+    make_zip(args.file, args.dependencies, args.folder_exclusions, args.file_exclusions)
     return
 
 # Call the main() function to begin
@@ -148,6 +165,16 @@ if __name__ == '__main__':
         "--file",
         help="Specify the target python script",
         metavar="ARG", required=True)
+    parser.add_argument(
+        "-x",
+        "--file-exclusions",
+        help="Specify files to exclude",
+        metavar="ARG", nargs='+', default=[], required=False)     
+    parser.add_argument(
+        "-X",
+        "--folder-exclusions",
+        help="Specify folders to exclude",
+        metavar="ARG", nargs='+', default=[], required=False)    
     parser.add_argument(
         "-d",
         "--dependencies",
